@@ -8,6 +8,31 @@ enum class TILE_TYPE : char
 	GROUND, WALL, DOOR
 };
 
+class cBSPTree;
+struct BSPTreeCreateData
+{
+	size_t width;
+	size_t height;
+	size_t minWidth;
+	size_t minHeight;
+};
+
+class cBSPTree
+{
+public:
+	cBSPTree* m_c1;
+	cBSPTree* m_c2;
+public:
+	cBSPTree()
+		:m_c1(nullptr), m_c2(nullptr)
+	{
+	}
+	template <class _Engine>
+	cBSPTree(_Engine _seed, float _childRatio)
+	{
+	}
+};
+
 class cMap
 {
 protected:
@@ -35,7 +60,7 @@ public:
 	//return: this
 	//_deep : 맵의 깊이
 	//_seed : 맵을 생성하기 위해 필요한 시드값(없으면 랜덤한 값으로 생성됨)
-	cMap& CreateBSPMap( size_t _deep, unsigned int _seed = std::random_device{}());
+	cMap& CreateBSPMap(size_t _deep, unsigned int _seed = std::random_device{}());
 public:
 
 };
