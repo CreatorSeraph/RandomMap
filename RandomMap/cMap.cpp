@@ -76,9 +76,9 @@ cMap& cMap::CreateNoiseMap(size_t _loopCount, unsigned int _seed, size_t _wallCo
 	while (_loopCount-- > 0)
 	{
 		prevMapTile = mapTile;
-		for (int i = 0; i < mapHeight; ++i)
+		for (size_t i = 0; i < mapHeight; ++i)
 		{
-			for (int j = 0; j < mapWidth; ++j)
+			for (size_t j = 0; j < mapWidth; ++j)
 			{
 				mapTile[GetIdx(i, j)] = (FindAdjacentGroundCount(i, j) > 9 - _wallCount) ? TILE_TYPE::GROUND : TILE_TYPE::WALL;
 			}
@@ -94,8 +94,11 @@ cMap& cMap::CreateNoiseMap(size_t _loopCount, unsigned int _seed, size_t _wallCo
 //return: this
 //_deep : 맵의 깊이
 //_seed : 맵을 생성하기 위해 필요한 시드값(없으면 랜덤한 값으로 생성됨)
-cMap& cMap::CreateBSPMap(size_t _deep, unsigned int _seed)
+cMap& cMap::CreateBSPMap(size_t _deep, const BSPTreeCreateData& _createData, unsigned int _seed)
 {
 	std::mt19937_64 randEngine(_seed);
+
+	cBSPTree tree(randEngine, _createData, BSPTreeData(m_width, m_height));
+
 	return *this;
 }
