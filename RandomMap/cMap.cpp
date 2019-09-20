@@ -1,4 +1,6 @@
 #include "cMap.h"
+#include <variant>
+#include <utility>
 using namespace std;
 
 cMap::cMap(size_t _width, size_t _height)
@@ -89,16 +91,91 @@ cMap& cMap::CreateNoiseMap(size_t _loopCount, unsigned int _seed, size_t _wallCo
 	return *this;
 }
 
+template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+template<class... Ts> overload(Ts...)->overload<Ts...>;//오버로드 패턴 사용
+
+struct BSPTreeData
+{
+	size_t left;
+	size_t right;
+	size_t top;
+	size_t bottom;
+
+	BSPTreeData(const BSPTreeData& _other) = default;
+	BSPTreeData(size_t _width, size_t _height)
+		:left(0), right(_width), top(0), bottom(_height)
+	{
+	}
+
+	size_t width() const { return right - left; }
+	size_t height() const { return bottom - top; }
+};
+
+class BSPTree
+{
+private:
+	struct BSPChild
+	{
+		BSPTree* c1;
+		BSPTree* c2;
+
+		BSPChild(BSPTree* _c1, BSPTree* _c2)
+			:c1(_c1), c2(_c2)
+		{
+		}
+	};
+	variant<BSPTreeData, BSPChild> m_data;
+	size_t m_divLine;
+	bool m_isDivWidth;
+public:
+	template <class _Engine>
+	BSPTree(_Engine& _engine, const BSPTreeCreateData& _createData, const BSPTreeData& _mapData, size_t _deep = 0)
+		:m_data(_mapData)//셀을 만들기 위한 정보를 넘겨준다.
+	{
+		size_t width = _mapData.width();
+		size_t height = _mapData.height();
+
+		m_isDivWidth = std::bernoulli_distribution(static_cast<float>(width) / (height + width))(_engine);//true = 가로로 분할, false = 세로로 분할
+		size_t divVal = (m_isDivWidth ? width : height);
+		size_t divMinVal = (m_isDivWidth ? _createData.minWidth : _createData.minHeight);
+
+		cout << _mapData.left << "\t" << _mapData.right << "\t" << _mapData.top << "\t" << _mapData.bottom;
+
+		//이미 최대 깊이에 도달했거나 분할 너비가 없는 경우
+		if (_deep == _createData.deep || divVal <= divMinVal * 2)
+		{
+			m_data = std::move(_mapData);//셀을 만들기 위한 정보를 넘겨준다.
+			cout << "마지막 노드" << endl;
+			return;
+		}
+
+		size_t minVal = (m_isDivWidth ? _mapData.left : _mapData.top);
+		BSPTreeData t1(_mapData);
+		BSPTreeData t2(_mapData);
+
+		(m_isDivWidth ? t1.right : t1.bottom) = (m_isDivWidth ? t2.left : t2.top) = m_divLine
+			= minVal + uniform_int_distribution<size_t>(divMinVal, divVal - divMinVal)(_engine);
+
+		cout << endl;
+
+		m_data = BSPChild(
+			new BSPTree(_engine, _createData, std::move(t1), _deep + 1),
+			new BSPTree(_engine, _createData, std::move(t2), _deep + 1)
+		);
+	}
+};
+
 //BSP를 사용한 맵생성
 //throw : 맵 생성이 실패했을경우 logic_error, 맵변수나 랜덤시드가 잘못되었을경우 bad_argument
 //return: this
-//_deep : 맵의 깊이
+//_treeData : BSPTree생성에 필요한 인자
+//_cellData : BSPTree로 방을 만들때 필요한 인자
 //_seed : 맵을 생성하기 위해 필요한 시드값(없으면 랜덤한 값으로 생성됨)
-cMap& cMap::CreateBSPMap(size_t _deep, const BSPTreeCreateData& _createData, unsigned int _seed)
+cMap& cMap::CreateBSPMap(const BSPTreeCreateData& _treeData, const BSPCellCreateData& _cellData, unsigned int _seed)
 {
 	std::mt19937_64 randEngine(_seed);
 
-	cBSPTree tree(randEngine, _createData, BSPTreeData(m_width, m_height));
+	BSPTree tree(randEngine, _treeData, BSPTreeData(m_width, m_height));
 
 	return *this;
 }
