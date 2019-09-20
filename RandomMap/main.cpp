@@ -6,30 +6,6 @@
 
 using namespace std;
 
-class Test
-{
-private:
-	int val;
-	string str;
-public:
-	Test(const string& _str, int _val)
-		:str(_str), val(_val)
-	{
-	}
-};
-
-void TestFunc()
-{
-	//list<Test> l;
-	//l.push_back(Test("hi", 1));
-	//l.push_back("hi", 1);
-	//l.emplace_back(Test("hi", 1));
-	//l.emplace_back("hi", 1);
-	//vector<Test> v;
-
-	int j = 0;
-}
-
 int main()
 {
 	cMap newMap(100, 100);
