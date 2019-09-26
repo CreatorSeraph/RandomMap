@@ -15,8 +15,8 @@ struct BSPTreeCreateData
 	size_t minHeight;
 	size_t deep;
 
-	BSPTreeCreateData(size_t _minWidth, size_t _minHeight, size_t _deep)
-		:minWidth(_minWidth), minHeight(_minHeight), deep(_deep)
+	BSPTreeCreateData(size_t _minWidth, size_t _minHeight, size_t _deep = 100)
+		: minWidth(_minWidth), minHeight(_minHeight), deep(_deep)
 	{
 	}
 };
@@ -25,9 +25,14 @@ struct BSPCellCreateData
 {
 	size_t minWidth;
 	size_t minHeight;
+	size_t remainLeft;
+	size_t remainTop;
+	size_t remainRight;
+	size_t remainBottom;
 
 	BSPCellCreateData(size_t _minWidth, size_t _minHeight)
-		:minWidth(_minWidth), minHeight(_minHeight)
+		: minWidth(_minWidth), minHeight(_minHeight)
+		, remainLeft(2), remainTop(2), remainRight(2), remainBottom(2)
 	{
 	}
 };
@@ -62,5 +67,7 @@ public:
 	//_seed     : 맵을 생성하기 위해 필요한 시드값(없으면 랜덤한 값으로 생성됨)
 	cMap& CreateBSPMap(const BSPTreeCreateData& _treeData, const BSPCellCreateData& _cellData, unsigned int _seed = std::random_device{}());
 public:
-
+	inline size_t GetWidth() { return m_width; }
+	inline size_t GetHeight() { return m_height; }
+	TILE_TYPE& operator[](int idx) { return m_map[idx]; }
 };
