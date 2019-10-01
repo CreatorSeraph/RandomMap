@@ -110,6 +110,26 @@ struct BSPCellData
 
 	size_t width() const { return right - left; }
 	size_t height() const { return bottom - top; }
+
+	size_t GetDistance(const BSPCellData& _other)
+	{
+		//값들을 2배로 사용하는 이유는 float로 잘릴수 있기 때문. 타일맵이기때문에 굳이 float자료형을 사용하지 않는다.
+		size_t xDistance2 = labs((left + right) - (_other.left + _other.right));//두 사각형의 x축 거리(의 2배)
+		size_t widthSum = width() + _other.width();//두 사각형의 너비의 합(의 2배)
+		//xDistance <= widthSum / 2
+		//xDistance * 2 <= widthSum
+		if (xDistance2 < widthSum)//두 사각형의 거리가, 너비의 합의 절반보다 클경우 (원충돌검사하듯이 x축 검사)
+			xDistance2 = widthSum;//거리를 구하는데 음수의 거리가 나올순 없다.
+		size_t yDistance2 = labs((top + bottom) - (_other.top + _other.bottom));
+		size_t heightSum = height() + _other.height();
+		if (yDistance2 <= heightSum)//반복
+			yDistance2 = heightSum;
+		
+		//가로길이 + 세로길이
+		//(xDistnace - widthSum / 2) + (yDistnace - heightSum / 2)
+		//(xDistnace2 - widthSum) + (yDistnace2 - heightSum ) / 2
+		return ((xDistance2 - widthSum) + (yDistance2 - heightSum)) / 2;
+	}
 };
 
 class BSPTree
@@ -176,7 +196,6 @@ public:
 		);
 	}
 
-	friend cMap;
 	template <class _Engine>
 	std::list<BSPCellData> CreateMap(_Engine& _engine, cMap& _map, const BSPCellCreateData& _cellData)
 	{
@@ -220,6 +239,23 @@ public:
 		auto& child = std::get<BSPChild>(m_data);
 		auto cell1 = child.c1->CreateMap(_engine, _map, _cellData);
 		auto cell2 = child.c2->CreateMap(_engine, _map, _cellData);
+
+		auto resultIter1 = cell1.begin();
+		auto resultIter2 = cell2.begin();
+		size_t minDistance = _map.GetWidth() + _map.GetHeight();
+		for (auto iter1 = resultIter1; iter1 != cell1.end(); ++iter1)
+		{
+			for (auto iter2 = resultIter2; iter2 != cell2.end(); ++iter2)
+			{
+				auto distTemp = (*iter1).GetDistance(*iter2);
+				if (distTemp < minDistance)
+				{
+					minDistance = distTemp;
+					resultIter1 = iter1;
+					resultIter2 = iter2;
+				}
+			}
+		}
 
 		result.splice(result.begin(), cell1);
 		result.splice(result.begin(), cell2);
