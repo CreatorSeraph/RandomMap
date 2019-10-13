@@ -111,7 +111,12 @@ struct BSPCellData
 	size_t width() const { return right - left; }
 	size_t height() const { return bottom - top; }
 
-	size_t GetDistance(const BSPCellData& _other)
+	std::pair<size_t, size_t> GetDistance(const BSPCellData& _other)
+	{
+		return make_pair(GetXDistance(_other), GetYDistance(_other));
+	}
+
+	size_t GetXDistance(const BSPCellData& _other)
 	{
 		//값들을 2배로 사용하는 이유는 float로 잘릴수 있기 때문. 타일맵이기때문에 굳이 float자료형을 사용하지 않는다.
 		size_t xDistance2 = labs((left + right) - (_other.left + _other.right));//두 사각형의 x축 거리(의 2배)
@@ -120,15 +125,20 @@ struct BSPCellData
 		//xDistance * 2 <= widthSum
 		if (xDistance2 < widthSum)//두 사각형의 거리가, 너비의 합의 절반보다 클경우 (원충돌검사하듯이 x축 검사)
 			xDistance2 = widthSum;//거리를 구하는데 음수의 거리가 나올순 없다.
+
+		//(xDistnace - widthSum / 2)
+		//(xDistnace2 - widthSum) / 2
+		return (xDistance2 - widthSum) / 2;
+	}
+
+	size_t GetYDistance(const BSPCellData& _other)
+	{
 		size_t yDistance2 = labs((top + bottom) - (_other.top + _other.bottom));
 		size_t heightSum = height() + _other.height();
 		if (yDistance2 <= heightSum)//반복
 			yDistance2 = heightSum;
-		
-		//가로길이 + 세로길이
-		//(xDistnace - widthSum / 2) + (yDistnace - heightSum / 2)
-		//(xDistnace2 - widthSum) + (yDistnace2 - heightSum ) / 2
-		return ((xDistance2 - widthSum) + (yDistance2 - heightSum)) / 2;
+
+		return (yDistance2 - heightSum) / 2;
 	}
 };
 
@@ -237,28 +247,69 @@ public:
 		//자식들에게 맵을 생성하게 시킨다
 		std::list<BSPCellData> result;
 		auto& child = std::get<BSPChild>(m_data);
-		auto cell1 = child.c1->CreateMap(_engine, _map, _cellData);
-		auto cell2 = child.c2->CreateMap(_engine, _map, _cellData);
+		auto cellList1 = child.c1->CreateMap(_engine, _map, _cellData);
+		auto cellList2 = child.c2->CreateMap(_engine, _map, _cellData);
 
-		auto resultIter1 = cell1.begin();
-		auto resultIter2 = cell2.begin();
-		size_t minDistance = _map.GetWidth() + _map.GetHeight();
-		for (auto iter1 = resultIter1; iter1 != cell1.end(); ++iter1)
+		auto resultIter1 = cellList1.begin();
+		auto resultIter2 = cellList2.begin();
+		size_t minXDistance = _map.GetWidth();
+		size_t minYDistance = _map.GetHeight();
+		for (auto iter1 = resultIter1; iter1 != cellList1.end(); ++iter1)
 		{
-			for (auto iter2 = resultIter2; iter2 != cell2.end(); ++iter2)
+			for (auto iter2 = resultIter2; iter2 != cellList2.end(); ++iter2)
 			{
-				auto distTemp = (*iter1).GetDistance(*iter2);
-				if (distTemp < minDistance)
+				auto [xDistTemp, yDistTemp] = (*iter1).GetDistance(*iter2);
+				if (xDistTemp + yDistTemp < minXDistance + minYDistance)
 				{
-					minDistance = distTemp;
+					minXDistance = xDistTemp;
+					minYDistance = yDistTemp;
 					resultIter1 = iter1;
 					resultIter2 = iter2;
 				}
 			}
 		}
 
-		result.splice(result.begin(), cell1);
-		result.splice(result.begin(), cell2);
+		auto& cell1 = *resultIter1;
+		auto& cell2 = *resultIter2;
+		//가장 거리가 짧은 두개의 cell을 구한다
+
+		int startX, startY;
+		int endX, endY;
+		if (cell1.left > cell2.right)//cell1이 cell2의 오른쪽에 있다.
+		{
+			startX = cell2.right;
+			endX = cell1.left;
+		}
+		else if (cell2.left > cell1.right)//cell2가 cell1의 오른쪽에 있다.
+		{
+			startX = cell1.right;
+			endX = cell2.left;
+		}
+		else//두 사각형의 X축에서 겹치는 부분이 있다.
+		{
+			//겹치는 부분(left의 최대값과 right의 최소값) 사이에 값을 고른다
+			startX = endX = uniform_int_distribution<size_t>(max(cell1.left, cell2.left), max(cell1.right, cell2.right))(_engine);
+		}
+
+		if (cell1.top > cell2.bottom)//cell1이 cell2의 위에 있다.
+		{
+			startY = cell2.bottom;
+			endY = cell1.top;
+		}
+		else if (cell2.top > cell1.bottom)//cell2가 cell1의 위에 있다.
+		{
+			startY = cell1.bottom;
+			endY = cell2.top;
+		}
+		else//두 사각형의 Y축에서 겹치는 부분이 있다.
+		{
+			//겹치는 부분(top의 최대값과 bottom의 최소값) 사이에 값을 고른다.
+			startY = endY = uniform_int_distribution<size_t>(max(cell1.top, cell2.top), max(cell1.bottom, cell2.bottom))(_engine);
+		}
+		
+
+		result.splice(result.begin(), cellList1);
+		result.splice(result.begin(), cellList2);
 
 		return result;
 	}
