@@ -92,9 +92,6 @@ cMap& cMap::CreateNoiseMap(size_t _loopCount, unsigned int _seed, size_t _wallCo
 	return *this;
 }
 
-template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
-template<class... Ts> overload(Ts...)->overload<Ts...>;//오버로드 패턴 사용
-
 struct BSPCellData
 {
 	size_t left;
@@ -164,13 +161,13 @@ public:
 		: m_data(_mapData)//셀을 만들기 위한 정보를 넘겨준다.
 	{
 		cout << _mapData.left << "\t" << _mapData.right << "\t" << _mapData.top << "\t" << _mapData.bottom;
-		size_t width = _mapData.width();
-		size_t height = _mapData.height();
+		size_t width = _mapData.width();//셀의 가로길이
+		size_t height = _mapData.height();//셀의 세로길이
 
 		size_t xMinVal = _mapData.left + _createData.minWidth;
 		size_t xMaxVal = _mapData.right - _createData.minWidth;
 		size_t yMinVal = _mapData.top + _createData.minHeight;
-		size_t yMaxVal = _mapData.bottom - _createData.minWidth;
+		size_t yMaxVal = _mapData.bottom - _createData.minHeight;
 
 		int xDivVal = xMaxVal - xMinVal;
 		int yDivVal = yMaxVal - yMinVal;
@@ -342,9 +339,11 @@ public:
 cMap& cMap::CreateBSPMap(const BSPTreeCreateData& _treeData, const BSPCellCreateData& _cellData, unsigned int _seed)
 {
 	std::mt19937_64 randEngine(_seed);
-
-	BSPTree tree(randEngine, _treeData, BSPCellData(m_width, m_height));
+	
 	std::fill(m_map.begin(), m_map.end(), TILE_TYPE::WALL);
+	//공간을 분할하고
+	BSPTree tree(randEngine, _treeData, BSPCellData(m_width, m_height));
+	//분할한 공간을 토대로 방을 만들고, 그 방을 연결시킨다.
 	auto result = tree.CreateMap(randEngine, *this, _cellData);
 
 	cout << _seed << endl;
