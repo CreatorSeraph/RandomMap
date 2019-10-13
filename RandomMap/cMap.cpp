@@ -287,7 +287,7 @@ public:
 		else//두 사각형의 X축에서 겹치는 부분이 있다.
 		{
 			//겹치는 부분(left의 최대값과 right의 최소값) 사이에 값을 고른다
-			startX = endX = uniform_int_distribution<size_t>(max(cell1.left, cell2.left), max(cell1.right, cell2.right))(_engine);
+			startX = endX = uniform_int_distribution<size_t>(max(cell1.left, cell2.left), min(cell1.right, cell2.right))(_engine);
 		}
 
 		if (cell1.top > cell2.bottom)//cell1이 cell2의 위에 있다.
@@ -303,21 +303,21 @@ public:
 		else//두 사각형의 Y축에서 겹치는 부분이 있다.
 		{
 			//겹치는 부분(top의 최대값과 bottom의 최소값) 사이에 값을 고른다.
-			startY = endY = uniform_int_distribution<size_t>(max(cell1.top, cell2.top), max(cell1.bottom, cell2.bottom))(_engine);
+			startY = endY = uniform_int_distribution<size_t>(max(cell1.top, cell2.top), min(cell1.bottom, cell2.bottom))(_engine);
 		}
 
 		if (startX == endX)
 		{
 			for (size_t i = startY; i <= endY; ++i)
 			{
-				_map[GetIdx(startX, i)] = TILE_TYPE::GROUND;
+				_map[GetIdx(i, startX)] = TILE_TYPE::GROUND;
 			}
 		}
 		else if (startY == endY)
 		{
 			for (size_t i = startX; i <= endX; ++i)
 			{
-				_map[GetIdx(i, startY)] = TILE_TYPE::GROUND;
+				_map[GetIdx(startY, i)] = TILE_TYPE::GROUND;
 			}
 		}
 		else
@@ -346,6 +346,8 @@ cMap& cMap::CreateBSPMap(const BSPTreeCreateData& _treeData, const BSPCellCreate
 	BSPTree tree(randEngine, _treeData, BSPCellData(m_width, m_height));
 	std::fill(m_map.begin(), m_map.end(), TILE_TYPE::WALL);
 	auto result = tree.CreateMap(randEngine, *this, _cellData);
+
+	cout << _seed << endl;
 
 	return *this;
 }
