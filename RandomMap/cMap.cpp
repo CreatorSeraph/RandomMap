@@ -209,6 +209,8 @@ public:
 	template <class _Engine>
 	std::list<BSPCellData> CreateMap(_Engine& _engine, cMap& _map, const BSPCellCreateData& _cellData)
 	{
+		auto mapWidth = _map.GetWidth();
+		auto GetIdx = [mapWidth](int y, int x) { return x + y * mapWidth; };//인덱스를 구해주는 함수
 		if (std::holds_alternative<BSPCellData>(m_data))
 		{
 			//노드의 마지막 부분이다. 맵생성이 필요함
@@ -229,9 +231,6 @@ public:
 			data.top += offsetTop;
 			data.right -= subWidth - offsetLeft;
 			data.bottom -= subHeight - offsetTop;
-
-			auto mapWidth = _map.GetWidth();
-			auto GetIdx = [mapWidth](int y, int x) { return x + y * mapWidth; };//인덱스를 구해주는 함수
 
 			for (size_t i = data.left; i <= data.right; ++i)
 			{
@@ -305,6 +304,25 @@ public:
 		{
 			//겹치는 부분(top의 최대값과 bottom의 최소값) 사이에 값을 고른다.
 			startY = endY = uniform_int_distribution<size_t>(max(cell1.top, cell2.top), max(cell1.bottom, cell2.bottom))(_engine);
+		}
+
+		if (startX == endX)
+		{
+			for (size_t i = startY; i <= endY; ++i)
+			{
+				_map[GetIdx(startX, i)] = TILE_TYPE::GROUND;
+			}
+		}
+		else if (startY == endY)
+		{
+			for (size_t i = startX; i <= endX; ++i)
+			{
+				_map[GetIdx(i, startY)] = TILE_TYPE::GROUND;
+			}
+		}
+		else
+		{
+			//TODO : 적어도 한번은 꺾어야한다.
 		}
 		
 
